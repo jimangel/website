@@ -135,7 +135,7 @@ Admission Controller (all `enforce`, `audit` and `warn` behaviors are skipped). 
 
 - **Usernames:** requests from users with an exempt authenticated (or impersonated) username are
   ignored.
-- **RuntimeClassNames:** pods and [workload resources](#workload-resources-and-pod-templates) specifying an exempt runtime class name are
+- **RuntimeClasses:** pods and [workload resources](#workload-resources-and-pod-templates) specifying an exempt runtime class name are
   ignored.
 - **Namespaces:** pods and [workload resources](#workload-resources-and-pod-templates) in an exempt namespace are ignored.
 
