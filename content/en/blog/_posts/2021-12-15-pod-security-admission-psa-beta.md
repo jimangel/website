@@ -2,40 +2,40 @@
 layout: blog
 title: 'Pod Security Admission (PSA) Graduates to Beta'
 date: 2021-12-15
-slug: pod-security-admission-psa-beta
+slug: pod-security-admission-beta
 ---
 
 **Authors:** Jim Angel (Google), Lachlan Evenson (Microsoft)
 
-_Editor's note: [Jim Angel](https://twitter.com/JimmAngel) and [Lachlan Evenson](https://twitter.com/LachlanEvenson) are both [CNCF Cloud Ambassadors](https://www.cncf.io/people/ambassadors/) and wear many hats in the open source Kubernetes community. Jim is a Cloud Consultant at Google and Lachlan is a Principal Program Manager on the Azure Core Upstream._
+_Editor's note: [Jim Angel](https://twitter.com/JimmAngel) and [Lachlan Evenson](https://twitter.com/LachlanEvenson) are both [CNCF Cloud Ambassadors](https://www.cncf.io/people/ambassadors/) and wear many hats in the open source Kubernetes community. Jim is a Cloud Consultant at Google and Lachlan is a Principal Program Manager on the Azure Core Upstream team._
 
 ## Introduction
 
-With the release of Kubernetes v1.23, [Pod Security Admission (PSA)](https://kubernetes.io/docs/concepts/security/pod-security-admission/) has now entered beta. PSA is a [built-in](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/) admission controller that evaluates pod specifications against a predefined set of [Pod Security Standards](https://kubernetes.io/docs/concepts/security/pod-security-standards/) and determines whether to `admit` or `deny` the pod from running. PSA is the successor to [Pod Security Policy](https://kubernetes.io/docs/concepts/policy/pod-security-policy/) which was deprecated in v1.21 and is removed in v1.25. Let's explore how Pod Security Admission works in the hope that cluster administrators and developers alike will use this to enforce secure defaults for their workloads. In this blog we will cover the key concepts of Pod Security Admission along with how to use it. 
+With the release of Kubernetes v1.23, [Pod Security Admission (PSA)](/docs/concepts/security/pod-security-admission/) has now entered beta. PSA is a [built-in](/docs/reference/access-authn-authz/admission-controllers/) admission controller that evaluates pod specifications against a predefined set of [Pod Security Standards](/docs/concepts/security/pod-security-standards/) and determines whether to `admit` or `deny` the pod from running. PSA is the successor to [PodSecurityPolicy](/docs/concepts/policy/pod-security-policy/) which was deprecated in v1.21 and is removed in v1.25. Let's explore how Pod Security Admission works in the hope that cluster administrators and developers alike will use this to enforce secure defaults for their workloads. In this blog we will cover the key concepts of Pod Security Admission along with how to use it. 
 
 ## Why Pod Security Admission
 
-Pod Security Admission overcomes the shortcomings of, deprecated, Pod Security Policy (PSP):
+Pod Security Admission overcomes key shortcomings of Kubernetes' existing, but deprecated, PodSecurityPolicy (PSP) mechanism:
 
    * Policy authorization model — challenging to deploy with controllers.
-   * Challenging to enable — no dry-run/audit capabilities made it hard to enable.
+   * Risks around switching — a lack of dry-run/audit capabilities made it hard to enable PodSecurityPolicy.
    * Inconsistent and Unbounded API — security constraints were ever-changing which led to the API needing changes.
 
 The shortcomings of PSP made it very difficult to use which led the community to reevaluate whether or not a better implementation could achieve the same goals. One of those goals was to provide an out-of-the-box solution to apply security best practices. Pod Security Admission ships with predefined Pod Security levels that a cluster administrator can configure to meet the desired security posture.
 
-It's important to note that Pod Security Admission doesn't have complete feature parity with the deprecated Pod Security Policy. Specifically, it doesn't have the ability to `mutate` or change Kubernetes resources to auto-remediate a policy violation on behalf of the user. Additionally, it doesn't provide fine-grain control over each allowed field and value within a pod specification or any other Kubernetes resource that you may wish to evaluate. If you need more fine-grained policy control then take a look at the [Gatekeeper](https://github.com/open-policy-agent/gatekeeper) project which supports such use cases.
+It's important to note that Pod Security Admission doesn't have complete feature parity with the deprecated PodSecurityPolicy. Specifically, it doesn't have the ability to `mutate` or change Kubernetes resources to auto-remediate a policy violation on behalf of the user. Additionally, it doesn't provide fine-grain control over each allowed field and value within a pod specification or any other Kubernetes resource that you may wish to evaluate. If you need more fine-grained policy control then take a look at the [Gatekeeper](https://github.com/open-policy-agent/gatekeeper) and [other](/docs/concepts/security/pod-security-standards/#faq) projects which support such use cases.
 
 Pod Security Admission also adheres to Kubernetes best practices of declarative object management by denying resources that violate the policy. This requires resources to be updated in source repositories, and tooling to be updated prior to being deployed to Kubernetes.
 
 ## How Does Pod Security Admission Work?
     
-Pod Security Admission is a built-in [admission controller](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/). Admission controllers function by intercepting requests in the Kubernetes API server prior to persistence to storage. They can either `admit` or `deny` a request. In the case of Pod Security Admission, pod specifications will be evaluated against a configured policy in the form of a Pod Security Standard. This means that security sensitive fields in a pod specification will only be allowed to have [specific](https://kubernetes.io/docs/concepts/security/pod-security-standards/#profile-details) values. 
+Pod Security Admission is a built-in [admission controller](/docs/reference/access-authn-authz/admission-controllers/). Admission controllers function by intercepting requests in the Kubernetes API server prior to persistence to storage. They can either `admit` or `deny` a request. In the case of Pod Security Admission, pod specifications will be evaluated against a configured policy in the form of a Pod Security Standard. This means that security sensitive fields in a pod specification will only be allowed to have [specific](h/docs/concepts/security/pod-security-standards/#profile-details) values. 
 
 ## Configuring Pod Security Admission
     
 ### Pod Security Standards
     
-In order to use Pod Security Admission we first need to understand [Pod Security Standards](https://kubernetes.io/docs/concepts/security/pod-security-standards/). These standards define three different policy levels that range from permissive to restrictive. These levels are as follows:
+In order to use Pod Security Admission we first need to understand [Pod Security Standards](/docs/concepts/security/pod-security-standards/). These standards define three different policy levels that range from permissive to restrictive. These levels are as follows:
    * Privileged — open and unrestricted
    * Baseline — Covers most common known privilege escalations and provides an easier onboarding
    * Restricted — Highly restricted, covering best practices. May cause compatibility issues
@@ -91,7 +91,7 @@ kind-control-plane   Ready    control-plane,master   54m   v1.23.0
 
 ### Confirm PSA is enabled
 
-The best way to [confirm the API's default enabled plugins](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#which-plugins-are-enabled-by-default) is to check the Kubernetes API container's help arguments.
+The best way to [confirm the API's default enabled plugins](/docs/reference/access-authn-authz/admission-controllers/#which-plugins-are-enabled-by-default) is to check the Kubernetes API container's help arguments.
 
 ```shell
 kubectl -n kube-system exec kube-apiserver-kind-control-plane -it -- kube-apiserver -h | grep "default enabled ones"
@@ -122,7 +122,7 @@ Policies are applied to a namespace via labels. These labels are as follows:
    * `pod-security.kubernetes.io/<MODE>: <LEVEL>` (required)
    * `pod-security.kubernetes.io/<MODE>-version: <VERSION>` (*optional*, defaults to latest)
 
-A specific version can be supplied for each enforcement mode. The version pins the policy to the version that was defined at that Kubernetes version. This is to increase flexibility for future  Kubernetes enhancements and unknown security issues.
+A specific version can be supplied for each enforcement mode. The version pins the policy to the version that was shipped as part of the Kubernetes release. Pinning to a specific Kubernetes version allows for deterministic policy behavior while allowing flexibility for future updates to Security Policy Standards
 
 From earlier, the modes are:
    * `enforce` — Any Pods that violate the policy will be rejected
@@ -133,7 +133,7 @@ From earlier, the modes are:
 
 When to `warn`?
 
-Don't use`warn` for the exact same level+version of the policy as `enforce`. In the admission sequence, if `enforce` fails, the entire sequence fails before evaluating the `warn`.
+Don't use `warn` for the exact same level+version of the policy as `enforce`. In the admission sequence, if `enforce` fails, the entire sequence fails before evaluating the `warn`.
 
 The typical uses for `warn` are:
 
@@ -176,7 +176,7 @@ Each workload represents a higher level of security that would not pass the prof
 
 **Privileged level and workload**
 
-For the privileged pod, allow privilege escalation. This allows the process inside a container to gain new processes and can be dangerous if untrusted ([more info](https://kubernetes.io/docs/concepts/security/pod-security-standards/#privileged)).
+For the privileged pod, allow [privilege escalation](/docs/concepts/security/pod-security-standards/#privileged). This allows the process inside a container to gain new processes and can be dangerous if untrusted.
 
 First, let's try to deploy it in the restricted namespace:
 
@@ -228,7 +228,7 @@ We can run `kubectl -n kube-test-privileged get pods` to verify it is running.
 
 **Baseline level and workload**
 
-The baseline pod demonstrates sensible defaults but does not allow privilege escalation, so the pod above would fail here too ([more info](https://kubernetes.io/docs/concepts/security/pod-security-standards/#baseline)). Baseline accepts null / no values for unset keys.
+The [baseline](/docs/concepts/security/pod-security-standards/#baseline) pod demonstrates sensible defaults but does not allow privilege escalation, so the pod above would fail here too. Baseline accepts null / no values for unset keys.
 
 First, let's try to deploy it in the restricted namespace:
 
@@ -289,7 +289,7 @@ Remember, we set the `kube-test-baseline` namespace to `warn` based on the restr
 
 **Restricted level and workload**
 
-Restricted requires rejection of all privileged parameters. It is the most secure with a trade-off for complexity ([more info](https://kubernetes.io/docs/concepts/security/pod-security-standards/#restricted)). The restricted policy allows containers to add the `NET_BIND_SERVICE` capability.
+[Restricted](/docs/concepts/security/pod-security-standards/#restricted) requires rejection of all privileged parameters. It is the most secure with a trade-off for complexity. The restricted policy allows containers to add the `NET_BIND_SERVICE` capability.
 
 ```shell
 cat <<EOF | kubectl -n kube-test-restricted apply -f -
@@ -595,7 +595,7 @@ Auditing is also a good first step in evaluating your cluster's current complian
 
 # PSP migrations
 
-If you're already using PSP, SIG Auth has created a guide and [published the steps to migrate off of PSP](https://kubernetes.io/docs/tasks/configure-pod-container/migrate-from-psp/).
+If you're already using PSP, SIG Auth has created a guide and [published the steps to migrate off of PSP](/docs/tasks/configure-pod-container/migrate-from-psp/).
 
 To summarize the process:
 - Update all existing PSPs to be non-mutating
@@ -607,7 +607,7 @@ Listed as "optional future extensions" and currently out of scope, SIG Auth has 
 
 ## Wrap up
 
-Pod Security Admission is a promising new feature that provides an out-of-the-box way to allow users to improve the security posture of their workloads. Like any new enhancement that has matured to beta, we ask that you try it out, provide feedback, or share your experience via either raising a Github issue or joining SIG-auth community meetings. It's our hope that Pod Security Admission will be deployed on every cluster in our ongoing pursuit as a community to make Kubernetes security a priority.
+Pod Security Admission is a promising new feature that provides an out-of-the-box way to allow users to improve the security posture of their workloads. Like any new enhancement that has matured to beta, we ask that you try it out, provide feedback, or share your experience via either raising a Github issue or joining SIG Auth community meetings. It's our hope that Pod Security Admission will be deployed on every cluster in our ongoing pursuit as a community to make Kubernetes security a priority.
 
 ## Additional resources
 
