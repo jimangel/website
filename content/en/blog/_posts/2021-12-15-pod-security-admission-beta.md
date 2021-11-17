@@ -7,7 +7,7 @@ slug: pod-security-admission-beta
 
 **Authors:** Jim Angel (Google), Lachlan Evenson (Microsoft)
 
-With the release of Kubernetes v1.23, [Pod Security Admission (PSA)](/docs/concepts/security/pod-security-admission/) has now entered beta. PSA is a [built-in](/docs/reference/access-authn-authz/admission-controllers/) admission controller that evaluates pod specifications against a predefined set of [Pod Security Standards](/docs/concepts/security/pod-security-standards/) and determines whether to `admit` or `deny` the pod from running. PSA is the successor to [PodSecurityPolicy](/docs/concepts/policy/pod-security-policy/) which was deprecated in v1.21 and is removed in v1.25. Let's explore how Pod Security Admission works in the hope that cluster administrators and developers alike will use this to enforce secure defaults for their workloads. In this blog we will cover the key concepts of Pod Security Admission along with how to use it. 
+With the release of Kubernetes v1.23, [Pod Security Admission (PSA)](/docs/concepts/security/pod-security-admission/) has now entered beta. PSA is a [built-in](/docs/reference/access-authn-authz/admission-controllers/) admission controller that evaluates pod specifications against a predefined set of [Pod Security Standards](/docs/concepts/security/pod-security-standards/) and determines whether to `admit` or `deny` the pod from running. PSA is the successor to [PodSecurityPolicy](/docs/concepts/policy/pod-security-policy/) which is deprecated in v1.21 and will be removed in v1.25. Let's explore how Pod Security Admission works in the hope that cluster administrators and developers alike will use this to enforce secure defaults for their workloads. In this blog we will cover the key concepts of Pod Security Admission along with how to use it. 
 
 ## Why Pod Security Admission
 
@@ -51,7 +51,7 @@ Policies are applied in a specific mode. Multiple modes (with different policies
    * `audit` — Violations will be recorded as an annotation in the audit logs, but don't affect whether the pod is allowed.
    * `warn` — Violations will send a warning message back to the user, but don't affect whether the pod is allowed.sent back to the user.
 
-In addition to modes you can also pin the policy to a specific version for example v1.22. Pinning to a specific version allows the behavior to remain consistent as the policy definition changes over Kubernetes releases.
+In addition to modes you can also pin the policy to a specific version for example v1.22. Pinning to a specific version allows the behavior to remain consistent as the policy definition changes over Kubernetes releases. If pinning to a specific Pod Security Standard version in a Kubernetes release you should take the time to understand the Kubernetes [supported version policy](/releases/version-skew-policy/#supported-versions).
 
 ## Hands on demo
 
@@ -127,7 +127,7 @@ Policies are applied to a namespace via labels. These labels are as follows:
    * `pod-security.kubernetes.io/<MODE>: <LEVEL>` (required to enable pod security)
    * `pod-security.kubernetes.io/<MODE>-version: <VERSION>` (*optional*, defaults to latest)
 
-A specific version can be supplied for each enforcement mode. The version pins the policy to the version that was shipped as part of the Kubernetes release. Pinning to a specific Kubernetes version allows for deterministic policy behavior while allowing flexibility for future updates to Security Policy Standards From earlier, recall that the possible modes are `enforce`, `audit` and `warn`.
+A specific version can be supplied for each enforcement mode. The version pins the policy to the version that was shipped as part of the Kubernetes release. Pinning to a specific Kubernetes version allows for deterministic policy behavior while allowing flexibility for future updates to Pod Security Standards. From earlier, recall that the possible modes are `enforce`, `audit` and `warn`.
 
 When to use `warn`?
 
