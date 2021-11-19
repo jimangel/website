@@ -19,7 +19,7 @@ Pod Security overcomes key shortcomings of Kubernetes' existing, but deprecated,
 
 The shortcomings of PSP made it very difficult to use which led the community to reevaluate whether or not a better implementation could achieve the same goals. One of those goals was to provide an out-of-the-box solution to apply security best practices. Pod Security ships with predefined Pod Security levels that a cluster administrator can configure to meet the desired security posture.
 
-It's important to note that Pod Security doesn't have complete feature parity with the deprecated PodSecurityPolicy. Specifically, it doesn't have the ability to `mutate` or change Kubernetes resources to auto-remediate a policy violation on behalf of the user. Additionally, it doesn't provide fine-grain control over each allowed field and value within a pod specification or any other Kubernetes resource that you may wish to evaluate. If you need more fine-grained policy control then take a look at the [Gatekeeper](https://github.com/open-policy-agent/gatekeeper) and [other](/docs/concepts/security/pod-security-standards/#faq) projects which support such use cases.
+It's important to note that Pod Security doesn't have complete feature parity with the deprecated PodSecurityPolicy. Specifically, it doesn't have the ability to mutate or change Kubernetes resources to auto-remediate a policy violation on behalf of the user. Additionally, it doesn't provide fine-grained control over each allowed field and value within a pod specification or any other Kubernetes resource that you may wish to evaluate. If you need more fine-grained policy control then take a look at these [other](/docs/concepts/security/pod-security-standards/#faq) projects which support such use cases.
 
 Pod Security also adheres to Kubernetes best practices of declarative object management by denying resources that violate the policy. This requires resources to be updated in source repositories, and tooling to be updated prior to being deployed to Kubernetes.
 
@@ -32,26 +32,26 @@ Pod Security is a built-in [admission controller](/docs/reference/access-authn-a
 ### Pod Security Standards
     
 In order to use Pod Security we first need to understand [Pod Security Standards](/docs/concepts/security/pod-security-standards/). These standards define three different policy levels that range from permissive to restrictive. These levels are as follows:
-   * Privileged — open and unrestricted
-   * Baseline — Covers known privilege escalations while minimizing restrictions
-   * Restricted — Highly restricted, hardening against known and unknown privilege escalations. May cause compatibility issues
+   * `privileged` — open and unrestricted
+   * `baseline` — Covers known privilege escalations while minimizing restrictions
+   * `restricted` — Highly restricted, hardening against known and unknown privilege escalations. May cause compatibility issues
 
 Each of these policy levels define which fields are restricted within a pod specification and the allowed values. Some of the fields restricted by these policies include:
-   * `spec.securityContext`
+   * `spec.securityContext.sysctls`
    * `spec.hostNetwork`
    * `spec.volumes[*].hostPath`
-   * `spec.containers[*].securityContext`
+   * `spec.containers[*].securityContext.privileged`
 
-Policy levels are applied via labels on Namespace resources, which allows for granular per-namespace policy selection. The AdmissionConfiguration in the api server can also be configured to set cluster-wide default levels and exemptions.
+Policy levels are applied via labels on Namespace resources, which allows for granular per-namespace policy selection. The AdmissionConfiguration in the API server can also be configured to set cluster-wide default levels and exemptions.
 
 ### Policy modes
 
-Policies are applied in a specific mode. Multiple modes (with different policies) can be set on the same namespace. Here is a list of modes:
+Policies are applied in a specific mode. Multiple modes (with different policy levels) can be set on the same namespace. Here is a list of modes:
    * `enforce` — Any Pods that violate the policy will be rejected
    * `audit` — Violations will be recorded as an annotation in the audit logs, but don't affect whether the pod is allowed.
    * `warn` — Violations will send a warning message back to the user, but don't affect whether the pod is allowed.
 
-In addition to modes you can also pin the policy to a specific version for example v1.22. Pinning to a specific version allows the behavior to remain consistent as the policy definition changes over Kubernetes releases. If pinning to a specific Pod Security Standard version in a Kubernetes release you should take the time to understand the Kubernetes [supported version policy](/releases/version-skew-policy/#supported-versions).
+In addition to modes you can also pin the policy to a specific version (for example v1.22). Pinning to a specific version allows the behavior to remain consistent if the policy definition changes in future Kubernetes releases.
 
 ## Hands on demo
 
@@ -239,7 +239,7 @@ kubectl -n verify-pod-security delete pod busybox-privileged
 
 ### Baseline level and workload
 
-The [baseline policy](/docs/concepts/security/pod-security-standards/#baseline) demonstrates sensible defaults but does not allow privilege escalation, so the pod above would fail here too. Baseline accepts null / no values for unset keys.
+The [baseline policy](/docs/concepts/security/pod-security-standards/#baseline) demonstrates sensible defaults while preventing common container exploits.
 
 Let's revert back to a restricted Pod Security level for a quick test.
 
@@ -488,7 +488,7 @@ In addition to applying labels to namespaces to configure policy you can also co
 
 Using this resource, policy definitions are applied cluster-wide by default and any policy that is applied via namespace labels will take precedence. 
 
-There is no runtime configurable API for this resource and a cluster administrator would need to specify a path to the file below via the `--admission-control-config-file` flag on the API server. 
+There is no runtime configurable API for the `AdmissionConfiguration` configuration file so a cluster administrator would need to specify a path to the file below via the `--admission-control-config-file` flag on the API server. 
 
 In the following resource we are enforcing the baseline policy and warning and auditing the baseline policy. We are also making the kube-system namespace exempt from this policy.
 
@@ -735,8 +735,12 @@ rules:
 - level: RequestResponse
   resources:
     - group: "" # core API group
-      resources: ["pods", "deployments", "statefulsets", "daemonsets"]
-  verbs: ["create"]
+      resources: ["pods", "pods/ephemeralcontainers", "podtemplates", "replicationcontrollers"]
+    - group: "apps"
+      resources: ["daemonsets", "deployments", "replicasets", "statefulsets"]
+    - group: "batch"
+      resources: ["cronjobs", "jobs"]
+  verbs: ["create", "update"]
   omitStages:
     - "RequestReceived"
     - "ResponseStarted"
@@ -745,7 +749,7 @@ rules:
 
 Once auditing is enabled, look at the configured local file if using `--audit-log-path` or the destination of a webhook if using `--audit-webhook-config-file`.
 
-If using a file (`--audit-log-path`), run `cat /PATH/TO/API-AUDIT/LOG.log | grep "is forbidden:"` to see all rejected workloads audited.
+If using a file (`--audit-log-path`), run `cat /PATH/TO/API/AUDIT.log | grep "is forbidden:"` to see all rejected workloads audited.
 
 ## PSP migrations
 
