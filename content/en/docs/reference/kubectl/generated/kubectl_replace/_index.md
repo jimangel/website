@@ -3,6 +3,8 @@ title: kubectl replace
 content_type: tool-reference
 weight: 30
 auto_generated: true
+description: >-
+  Replace a resource by file name or stdin
 no_list: true
 ---
 
@@ -89,7 +91,7 @@ kubectl replace -f FILENAME
 <td colspan="2">-f, --filename strings</td>
 </tr>
 <tr>
-<td></td><td style="line-height: 130%; word-wrap: break-word;"><p>The files that contain the configurations to replace.</p></td>
+<td></td><td style="line-height: 130%; word-wrap: break-word;"><p>The files, directories or URLs that contain the configurations to replace.</p></td>
 </tr>
 
 <tr>
@@ -335,6 +337,13 @@ kubectl replace -f FILENAME
 </tr>
 <tr>
 <td></td><td style="line-height: 130%; word-wrap: break-word;"><p>Name of the file to write the profile to</p></td>
+</tr>
+
+<tr>
+<td colspan="2">--proxy-url string</td>
+</tr>
+<tr>
+<td></td><td style="line-height: 130%; word-wrap: break-word;"><p>Proxy URL to use for requests to the API server</p></td>
 </tr>
 
 <tr>

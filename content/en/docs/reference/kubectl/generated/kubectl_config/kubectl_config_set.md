@@ -3,6 +3,8 @@ title: kubectl config set
 content_type: tool-reference
 weight: 30
 auto_generated: true
+description: >-
+  Set an individual value in a kubeconfig file
 ---
 
 
@@ -217,6 +219,13 @@ kubectl config set PROPERTY_NAME PROPERTY_VALUE
 </tr>
 <tr>
 <td></td><td style="line-height: 130%; word-wrap: break-word;"><p>Name of the file to write the profile to</p></td>
+</tr>
+
+<tr>
+<td colspan="2">--proxy-url string</td>
+</tr>
+<tr>
+<td></td><td style="line-height: 130%; word-wrap: break-word;"><p>Proxy URL to use for requests to the API server</p></td>
 </tr>
 
 <tr>

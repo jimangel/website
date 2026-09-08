@@ -3,6 +3,8 @@ title: kubectl rollout history
 content_type: tool-reference
 weight: 30
 auto_generated: true
+description: >-
+  View rollout history
 ---
 
 
@@ -261,6 +263,13 @@ kubectl rollout history (TYPE NAME | TYPE/NAME) [flags]
 </tr>
 <tr>
 <td></td><td style="line-height: 130%; word-wrap: break-word;"><p>Name of the file to write the profile to</p></td>
+</tr>
+
+<tr>
+<td colspan="2">--proxy-url string</td>
+</tr>
+<tr>
+<td></td><td style="line-height: 130%; word-wrap: break-word;"><p>Proxy URL to use for requests to the API server</p></td>
 </tr>
 
 <tr>

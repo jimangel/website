@@ -146,6 +146,10 @@ This access bypasses audit logging and admission control, so care should be take
 granting any rights to this resource.
 These APIs can be exercised via websocket HTTP `GET` requests, which only requires authorization of the **get** verb.
 This means that **get** permission on `nodes/proxy` is not a read-only permission.
+For example, permission to **get** `nodes/proxy` provides access to privileged kubelet
+APIs that can retrieve container logs or execute and attach to pod processes,
+even when a caller does not have the equivalent permissions through the
+Kubernetes API.
 
 See [Kubelet authentication/authorization](/docs/reference/access-authn-authz/kubelet-authn-authz/#get-nodes-proxy-warning)
 for more information.
@@ -193,6 +197,9 @@ labels on that namespace. In clusters where Pod Security Admission is used, this
 for a more permissive policy than intended by the administrators.
 For clusters where NetworkPolicy is used, users may be set labels that indirectly allow
 access to services that an administrator did not intend to allow.
+For clusters using Dynamic Resource Allocation, labeling a namespace with
+`resource.kubernetes.io/admin-access: "true"` allows any user who can create ResourceClaims in that namespace
+to request admin access to devices already allocated to any other claim in any namespace.
 
 ## Kubernetes RBAC - denial of service risks {#denial-of-service-risks}
 

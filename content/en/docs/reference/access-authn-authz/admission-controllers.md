@@ -47,18 +47,19 @@ administrator.
 
 ### Admission control extension points
 
-Within the full [list](#what-does-each-admission-controller-do), there are three
+Within the full [list](#what-does-each-admission-controller-do), there are four
 special controllers:
 [MutatingAdmissionWebhook](#mutatingadmissionwebhook),
+[MutatingAdmissionPolicy](#mutatingadmissionpolicy),
 [ValidatingAdmissionWebhook](#validatingadmissionwebhook), and
 [ValidatingAdmissionPolicy](#validatingadmissionpolicy).
 The two webhook controllers execute the mutating and validating (respectively)
 [admission control webhooks](/docs/reference/access-authn-authz/extensible-admission-controllers/#admission-webhooks)
 which are configured in the API. ValidatingAdmissionPolicy provides a way to embed
 declarative validation code within the API, without relying on any external HTTP
-callouts.
+callouts; MutatingAdmissionPolicy does the same for declarative mutations.
 
-You can use these three admission controllers to customize cluster behavior at
+You can use these four admission controllers to customize cluster behavior at
 admission time.
 
 ### Admission control phases
@@ -127,7 +128,7 @@ kube-apiserver -h | grep enable-admission-plugins
 In Kubernetes {{< skew currentVersion >}}, the default ones are:
 
 ```shell
-CertificateApproval, CertificateSigning, CertificateSubjectRestriction, DefaultIngressClass, DefaultStorageClass, DefaultTolerationSeconds, LimitRanger, MutatingAdmissionWebhook, NamespaceLifecycle, PersistentVolumeClaimResize, PodSecurity, Priority, ResourceQuota, RuntimeClass, ServiceAccount, StorageObjectInUseProtection, TaintNodesByCondition, ValidatingAdmissionPolicy, ValidatingAdmissionWebhook
+CertificateApproval, CertificateSigning, CertificateSubjectRestriction, DefaultIngressClass, DefaultStorageClass, DefaultTolerationSeconds, LimitRanger, MutatingAdmissionPolicy, MutatingAdmissionWebhook, NamespaceLifecycle, PersistentVolumeClaimResize, PodSecurity, Priority, ResourceQuota, RuntimeClass, ServiceAccount, StorageObjectInUseProtection, TaintNodesByCondition, ValidatingAdmissionPolicy, ValidatingAdmissionWebhook
 ```
 
 ## What does each admission controller do?
@@ -466,6 +467,14 @@ To disallow access, the service would return:
 }
 ```
 
+{{< note >}}
+`ImageReview` objects will include all images in Pods intended to be executed as
+containers. This covers images specified as part of the containers,
+initContainers, or ephemeralContainers fields in a Pod specification. As a
+result, images included under image volumes are not in scope for the
+ImagePolicyWebhook.
+{{< /note >}}
+
 For further documentation refer to the
 [`imagepolicy.v1alpha1` API](/docs/reference/config-api/imagepolicy.v1alpha1/).
 
@@ -488,8 +497,8 @@ In any case, the annotations are provided by the user and are not validated by K
 
 **Type**: Validating.
 
-This admission controller denies any pod that defines `AntiAffinity` topology key other than
-`kubernetes.io/hostname` in `requiredDuringSchedulingRequiredDuringExecution`.
+This admission controller denies any pod that defines an `AntiAffinity` topology key other than
+`kubernetes.io/hostname` in `requiredDuringSchedulingIgnoredDuringExecution`.
 
 This admission controller is disabled by default.
 
@@ -507,6 +516,18 @@ Pods in the `default` namespace.
 See the [LimitRange API reference](/docs/reference/kubernetes-api/policy-resources/limit-range-v1/)
 and the [example of LimitRange](/docs/tasks/administer-cluster/manage-resources/memory-default-namespace/)
 for more details.
+
+### MutatingAdmissionPolicy {#mutatingadmissionpolicy}
+
+**Type**: Mutating.
+
+[This admission controller](/docs/reference/access-authn-authz/mutating-admission-policy/) implements
+declarative, in-process mutations for incoming matched requests, defined as CEL expressions that
+modify matched objects using apply configurations or JSON patches.
+It provides a lower-latency alternative to
+[MutatingAdmissionWebhook](#mutatingadmissionwebhook), without relying on any external HTTP
+callouts.
+If any of the MutatingAdmissionPolicies fails, the request fails.
 
 ### MutatingAdmissionWebhook {#mutatingadmissionwebhook}
 
@@ -597,10 +618,10 @@ kubelets are not allowed to update or remove taints from their `Node` API object
 The `NodeRestriction` admission plugin prevents kubelets from deleting their `Node` API object,
 and enforces kubelet modification of labels under the `kubernetes.io/` or `k8s.io/` prefixes as follows:
 
-* **Prevents** kubelets from adding/removing/updating labels with a `node-restriction.kubernetes.io/` prefix.
-  This label prefix is reserved for administrators to label their `Node` objects for workload isolation purposes,
-  and kubelets will not be allowed to modify labels with that prefix.
-* **Allows** kubelets to add/remove/update these labels and label prefixes:
+* **Forbidden** (Kubelets are blocked from modifying these):
+  * Labels with a `node-restriction.kubernetes.io/` prefix. This prefix is reserved for administrators to label `Node` objects for workload isolation.
+  * Labels with a `node-role.kubernetes.io/` prefix (for example: `node-role.kubernetes.io/control-plane`). These are restricted to prevent unprivileged nodes from self-declaring cluster roles.
+* **Allowed** (Kubelets can add/remove/update these):
   * `kubernetes.io/hostname`
   * `kubernetes.io/arch`
   * `kubernetes.io/os`
@@ -612,9 +633,18 @@ and enforces kubelet modification of labels under the `kubernetes.io/` or `k8s.i
   * `topology.kubernetes.io/zone`
   * `kubelet.kubernetes.io/`-prefixed labels
   * `node.kubernetes.io/`-prefixed labels
+* **Reserved**:
+  Use of any other labels under the `kubernetes.io` or `k8s.io` prefixes by kubelets is reserved.
+  The `NodeRestriction` admission plugin generally disallows these to prevent unauthorized self-labeling,
+  but may allow additional labels under these prefixes in the future as part of future features.
 
-Use of any other labels under the `kubernetes.io` or `k8s.io` prefixes by kubelets is reserved,
-and may be disallowed or allowed by the `NodeRestriction` admission plugin in the future.
+When the `ServiceAccountNodeAudienceRestriction` [feature gate](/docs/reference/command-line-tools-reference/feature-gates/)
+is enabled, this admission plugin also restricts the audiences for which a kubelet can
+request service account tokens via the `TokenRequest` API. The kubelet can only request
+tokens for audiences already referenced by pods on that node (through projected service
+account token volumes or CSI driver token requests), or for audiences explicitly granted
+through RBAC using the `request-serviceaccounts-token-audience` verb. For more details,
+see [Service account token audience restriction](/docs/reference/access-authn-authz/node/#service-account-token-audience-restriction).
 
 Future versions may add additional restrictions to ensure kubelets have the minimal set of
 permissions required to operate correctly.
@@ -791,7 +821,7 @@ which can be surfaced to running containers using the
 [Downward API](/docs/concepts/workloads/pods/downward-api/).
 The labels available as a result of this controller are the
 [topology.kubernetes.io/region](/docs/reference/labels-annotations-taints/#topologykubernetesioregion) and
-[topology.kuberentes.io/zone](/docs/reference/labels-annotations-taints/#topologykubernetesiozone) labels.
+[topology.kubernetes.io/zone](/docs/reference/labels-annotations-taints/#topologykubernetesiozone) labels.
 
 {{<note>}}
 If any mutating admission webhook adds or modifies labels of the `pods/binding` subresource,

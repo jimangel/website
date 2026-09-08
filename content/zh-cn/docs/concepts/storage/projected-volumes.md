@@ -143,25 +143,18 @@ volume mount will not receive updates for those volume sources.
 
 {{< feature-state feature_gate_name="ClusterTrustBundleProjection" >}}
 
-{{< note >}}
 <!--
-To use this feature in Kubernetes {{< skew currentVersion >}}, you must enable support for ClusterTrustBundle objects with the `ClusterTrustBundle` [feature gate](/docs/reference/command-line-tools-reference/feature-gates/) and `--runtime-config=certificates.k8s.io/v1beta1/clustertrustbundles=true` kube-apiserver flag, then enable the `ClusterTrustBundleProjection` feature gate.
--->
-要在 Kubernetes {{< skew currentVersion >}} 中使用此特性，你必须通过 `ClusterTrustBundle`
-[特性门控](/zh-cn/docs/reference/command-line-tools-reference/feature-gates/)和
-`--runtime-config=certificates.k8s.io/v1beta1/clustertrustbundles=true` kube-apiserver
-标志启用对 ClusterTrustBundle 对象的支持，然后才能启用 `ClusterTrustBundleProjection` 特性门控。
-{{< /note >}}
-
-<!--
-The `clusterTrustBundle` projected volume source injects the contents of one or more [ClusterTrustBundle](/docs/reference/access-authn-authz/certificate-signing-requests#cluster-trust-bundles) objects as an automatically-updating file in the container filesystem.
+The `clusterTrustBundle` projected volume source injects the contents of one or more
+[ClusterTrustBundle](/docs/reference/access-authn-authz/certificate-signing-requests#cluster-trust-bundles)
+objects as an automatically-updating file in the container filesystem.
 -->
 `clusterTrustBundle` 投射卷源将一个或多个
 [ClusterTrustBundle](/zh-cn/docs/reference/access-authn-authz/certificate-signing-requests#cluster-trust-bundles)
 对象的内容作为一个自动更新的文件注入到容器文件系统中。
 
 <!--
-ClusterTrustBundles can be selected either by [name](/docs/reference/access-authn-authz/certificate-signing-requests#ctb-signer-unlinked) or by [signer name](/docs/reference/access-authn-authz/certificate-signing-requests#ctb-signer-linked).
+ClusterTrustBundles can be selected either by [name](/docs/reference/access-authn-authz/certificate-signing-requests#ctb-signer-unlinked)
+or by [signer name](/docs/reference/access-authn-authz/certificate-signing-requests#ctb-signer-linked).
 -->
 ClusterTrustBundle 可以通过[名称](/zh-cn/docs/reference/access-authn-authz/certificate-signing-requests#ctb-signer-unlinked)
 或[签名者名称](/zh-cn/docs/reference/access-authn-authz/certificate-signing-requests#ctb-signer-linked)被选中。
@@ -181,14 +174,20 @@ ClusterTrustBundles for that signer are selected.
 如果 `labelSelector` 不存在，则针对该签名者的所有 ClusterTrustBundle 将被选中。
 
 <!--
-The kubelet deduplicates the certificates in the selected ClusterTrustBundle objects, normalizes the PEM representations (discarding comments and headers), reorders the certificates, and writes them into the file named by `path`. As the set of selected ClusterTrustBundles or their content changes, kubelet keeps the file up-to-date.
+The kubelet deduplicates the certificates in the selected ClusterTrustBundle objects,
+normalizes the PEM representations (discarding comments and headers), reorders the certificates,
+and writes them into the file named by `path`.
+As the set of selected ClusterTrustBundles or their content changes, kubelet keeps the file up-to-date.
 -->
 kubelet 会对所选 ClusterTrustBundle 对象中的证书进行去重，规范化 PEM 表示（丢弃注释和头部），
 重新排序证书，并将这些证书写入由 `path` 指定的文件中。
 随着所选 ClusterTrustBundle 的集合或其内容发生变化，kubelet 会保持更新此文件。
 
 <!--
-By default, the kubelet will prevent the pod from starting if the named ClusterTrustBundle is not found, or if `signerName` / `labelSelector` do not match any ClusterTrustBundles.  If this behavior is not what you want, then set the `optional` field to `true`, and the pod will start up with an empty file at `path`.
+By default, the kubelet will prevent the pod from starting if the named ClusterTrustBundle is not found,
+or if `signerName` / `labelSelector` do not match any ClusterTrustBundles.  
+If this behavior is not what you want, then set the `optional` field to `true`,
+and the pod will start up with an empty file at `path`.
 -->
 默认情况下，如果找不到指定的 ClusterTrustBundle，或者 `signerName` / `labelSelector`
 与所有 ClusterTrustBundle 都不匹配，kubelet 将阻止 Pod 启动。如果这不是你想要的行为，
@@ -202,19 +201,6 @@ By default, the kubelet will prevent the pod from starting if the named ClusterT
 ## podCertificate 投射卷    {#podcertificate}
 
 {{< feature-state feature_gate_name="PodCertificateRequest" >}}
-
-{{< note >}}
-<!--
-In Kubernetes {{< skew currentVersion >}}, you must enable support for Pod
-Certificates using the `PodCertificateRequest` [feature
-gate](/docs/reference/command-line-tools-reference/feature-gates/) and the
-`--runtime-config=certificates.k8s.io/v1beta1/podcertificaterequests=true`
-kube-apiserver flag.
--->
-在 Kubernetes {{< skew currentVersion >}} 中，你必须使用 `PodCertificateRequest`
-**特性门控**和 `--runtime-config=certificates.k8s.io/v1beta1/podcertificaterequests=true`
-kube-apiserver 标志来启用对 Pod 证书的支持。
-{{< /note >}}
 
 <!--
 The `podCertificate` projected volumes source securely provisions a private key
@@ -267,7 +253,8 @@ Each `podCertificate` projection supports the following configuration fields:
 <!--
 * `userAnnotations`: a map that allows you to pass additional information to
   the signer implementation. It is copied verbatim into the
-  `spec.unverifiedUserAnnotations` field of the [PodCertificateRequest](docs/reference/access-authn-authz/certificate-signing-requests#pod-certificate-requests) objects
+  `spec.unverifiedUserAnnotations` field of the
+  [PodCertificateRequest](docs/reference/access-authn-authz/certificate-signing-requests#pod-certificate-requests) objects
   that Kubelet creates. Entries are subject to the same validation as object
   metadata annotations, with the addition that all keys must be domain-prefixed.
   No restrictions are placed on values, except an overall size limitation on the
@@ -313,7 +300,9 @@ kubelet 使用基于符号链接的原子写入策略，确保在你打开它投
 ## 与 SecurityContext 间的关系    {#securitycontext-interactions}
 
 <!--
-The [proposal](https://git.k8s.io/enhancements/keps/sig-storage/2451-service-account-token-volumes#proposal) for file permission handling in projected service account volume enhancement introduced the projected files having the correct owner permissions set.
+The [proposal](https://git.k8s.io/enhancements/keps/sig-storage/2451-service-account-token-volumes#proposal)
+for file permission handling in projected service account volume enhancement
+introduced the projected files having the correct owner permissions set.
 -->
 关于在投射的服务账号卷中处理文件访问权限的[提案](https://git.k8s.io/enhancements/keps/sig-storage/2451-service-account-token-volumes#proposal)
 介绍了如何使得所投射的文件具有合适的属主访问权限。

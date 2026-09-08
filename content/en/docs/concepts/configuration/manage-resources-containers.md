@@ -53,11 +53,9 @@ container that over allocates memory may not be immediately killed. This means
 its `memory` limit, but if it does, it may get killed.
 
 {{< note >}}
-There is an alpha feature `MemoryQoS` which attempts to add more preemptive
-limit enforcement for memory (as opposed to reactive enforcement by the OOM
-killer). However, this effort is
-[stalled](https://github.com/kubernetes/enhancements/tree/a47155b340/keps/sig-node/2570-memory-qos#latest-update-stalled)
-due to a potential livelock situation a memory hungry can cause.
+There is a feature `MemoryQoS` which adds memory throttling and optional
+tiered memory reservation on Linux nodes using cgroup v2. For details, see
+[Memory QoS with cgroup v2](/docs/concepts/workloads/pods/pod-qos/#memory-qos-with-cgroup-v2).
 {{< /note >}}
 
 {{< note >}}
@@ -68,9 +66,22 @@ you specified and uses it as the requested value for the resource.
 
 ## Resource types
 
-*CPU* and *memory* are each a *resource type*. A resource type has a base unit.
-CPU represents compute processing and is specified in units of [Kubernetes CPUs](#meaning-of-cpu).
-Memory is specified in units of bytes.
+A *resource type* has a base unit and can be requested, limited, or both.
+Kubernetes has the following built-in resource types:
+
+| Resource type | Description | Base unit |
+|---|---|---|
+| `cpu` | Compute processing | cpu (core) |
+| `memory` | RAM | Bytes |
+| `ephemeral-storage` | [Local ephemeral storage](/docs/concepts/storage/ephemeral-storage/) | Bytes |
+| `hugepages-<size>` | [Huge pages](#huge-pages) (Linux only) | Bytes |
+
+Clusters can also provide
+[extended resources](/docs/concepts/configuration/manage-resources-containers/#extended-resources)
+(resources with a custom name, typically exposed by device plugins).
+
+### Huge pages
+
 For Linux workloads, you can specify _huge page_ resources.
 Huge pages are a Linux-specific feature where the node kernel allocates blocks of memory
 that are much larger than the default page size.
@@ -98,9 +109,11 @@ including the following:
 
 * `spec.containers[].resources.limits.cpu`
 * `spec.containers[].resources.limits.memory`
+* `spec.containers[].resources.limits.ephemeral-storage`
 * `spec.containers[].resources.limits.hugepages-<size>`
 * `spec.containers[].resources.requests.cpu`
 * `spec.containers[].resources.requests.memory`
+* `spec.containers[].resources.requests.ephemeral-storage`
 * `spec.containers[].resources.requests.hugepages-<size>`
 
 Although you can only specify requests and limits for individual containers,
@@ -169,14 +182,16 @@ Limits and requests for `memory` are measured in bytes. You can express memory a
 a plain integer or as a fixed-point number using one of these
 [quantity](/docs/reference/kubernetes-api/common-definitions/quantity/) suffixes:
 E, P, T, G, M, k. You can also use the power-of-two equivalents: Ei, Pi, Ti, Gi,
-Mi, Ki. For example, the following represent roughly the same value:
+Mi, Ki. The Kubernetes API also allows m as a suffix (for millibytes: 1/1000 of a byte),
+but this isn't useful to specify: you must always assign whole numbers of bytes, or sometimes larger chunks such as multiples of 1 gibibyte.
+
+Here are some examples of memory quantities that represent roughly the same value:
 
 ```shell
 128974848, 129e6, 129M,  128974848000m, 123Mi
 ```
 
-Pay attention to the case of the suffixes. If you request `400m` of memory, this is a request
-for 0.4 bytes. Someone who types that probably meant to ask for 400 mebibytes (`400Mi`)
+Pay attention to the case of the suffixes. "M" means megabytes, while "m" means millibytes. If you request `400m` of memory, this is a request for 0.4 bytes. Someone who types that probably meant to ask for 400 mebibytes (`400Mi`)
 or 400 megabytes (`400M`).
 
 ## Container resources example {#example-1}
@@ -220,7 +235,7 @@ spec:
 {{< feature-state feature_gate_name="PodLevelResources" >}}
 
 This feature can be enabled by setting the `PodLevelResources` 
-[feature gate](/docs/reference/command-line-tools-reference/feature-gates).
+[feature gate](/docs/reference/command-line-tools-reference/feature-gates/).
 The following Pod has an explicit request of 1 CPU and 100 MiB of memory, and an
 explicit limit of 1 CPU and 200 MiB of memory. The `pod-resources-demo-ctr-1`
 container has explicit requests and limits set. However, the
@@ -301,6 +316,16 @@ In-place resize currently applies to container-level resources. For resizing Pod
 resources, see [Resize Pod CPU and Memory Resources](/docs/tasks/configure-pod-container/resize-pod-resources/).
 {{< /note >}}
 
+{{< note >}}
+{{< feature-state feature_gate_name="InPlacePodVerticalScalingSchedulerPreemption" >}}
+
+When the `InPlacePodVerticalScalingSchedulerPreemption` feature gate is enabled,
+deferred in-place resize requests can trigger `kube-scheduler` to preempt
+lower-priority Pods on the assigned node to make room for the resize.
+For more details, see
+[Preemption for in-place Pod resize](/docs/concepts/scheduling-eviction/pod-priority-preemption/#preemption-for-in-place-pod-resize).
+{{< /note >}}
+
 #### Resizing by launching replacement Pods
 
 The cloud native approach to changing a Pod's resources is to update the Pod template
@@ -325,6 +350,12 @@ from the [Metrics API](/docs/tasks/debug/debug-cluster/resource-metrics-pipeline
 directly or from your monitoring tools.
 
 ### Considerations for memory backed `emptyDir` volumes {#memory-backed-emptydir}
+
+{{< note >}}
+{{< feature-state feature_gate_name="InPlacePodVerticalScalingMemoryBackedVolumes" >}}
+
+When the `InPlacePodVerticalScalingMemoryBackedVolumes` feature gate is enabled, you can dynamically adjust the `sizeLimit` of a memory-backed (`medium: Memory`) `emptyDir` volume on a running Pod without requiring Pod recreation or container restarts. For step-by-step instructions, see [Resize CPU and Memory Resources assigned to Containers](/docs/tasks/configure-pod-container/resize-container-resources/#resizing-memory-backed-emptydir-volumes).
+{{< /note >}}
 
 {{< caution >}}
 If you do not specify a `sizeLimit` for an `emptyDir` volume, that volume may
@@ -366,7 +397,7 @@ then the maximum size of an `emptyDir` volume will be the pod's memory limit.
 
 As an alternative, a cluster administrator can enforce size limits for
 `emptyDir` volumes in new Pods using a policy mechanism such as
-[ValidationAdmissionPolicy](/docs/reference/access-authn-authz/validating-admission-policy).
+[ValidatingAdmissionPolicy](/docs/reference/access-authn-authz/validating-admission-policy).
 
 ## Local ephemeral storage
 
@@ -439,7 +470,7 @@ http://k8s-master:8080/api/v1/nodes/k8s-node-1/status
 In the preceding request, `~1` is the encoding for the character `/`
 in the patch path. The operation path value in JSON-Patch is interpreted as a
 JSON-Pointer. For more details, see
-[IETF RFC 6901, section 3](https://tools.ietf.org/html/rfc6901#section-3).
+[IETF RFC 6901, section 3](https://datatracker.ietf.org/doc/html/rfc6901#section-3).
 {{< /note >}}
 
 #### Cluster-level extended resources
@@ -596,7 +627,7 @@ Non-terminated Pods:        (5 in total)
   Namespace    Name                                  CPU Requests  CPU Limits  Memory Requests  Memory Limits
   ---------    ----                                  ------------  ----------  ---------------  -------------
   kube-system  fluentd-gcp-v1.38-28bv1               100m (5%)     0 (0%)      200Mi (2%)       200Mi (2%)
-  kube-system  kube-dns-3297075139-61lj3             260m (13%)    0 (0%)      100Mi (1%)       170Mi (2%)
+  kube-system  coredns-3297075139-61lj3              260m (13%)    0 (0%)      100Mi (1%)       170Mi (2%)
   kube-system  kube-proxy-e2e-test-...               100m (5%)     0 (0%)      0 (0%)           0 (0%)
   kube-system  monitoring-influxdb-grafana-v4-z1m12  200m (10%)    200m (10%)  600Mi (8%)       600Mi (8%)
   kube-system  node-problem-detector-v0.1-fj7m3      20m (1%)      200m (10%)  20Mi (0%)        100Mi (1%)

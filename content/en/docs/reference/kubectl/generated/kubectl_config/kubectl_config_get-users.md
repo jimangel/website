@@ -3,6 +3,8 @@ title: kubectl config get-users
 content_type: tool-reference
 weight: 30
 auto_generated: true
+description: >-
+  Display users defined in the kubeconfig
 ---
 
 
@@ -195,6 +197,13 @@ kubectl config get-users [flags]
 </tr>
 <tr>
 <td></td><td style="line-height: 130%; word-wrap: break-word;"><p>Name of the file to write the profile to</p></td>
+</tr>
+
+<tr>
+<td colspan="2">--proxy-url string</td>
+</tr>
+<tr>
+<td></td><td style="line-height: 130%; word-wrap: break-word;"><p>Proxy URL to use for requests to the API server</p></td>
 </tr>
 
 <tr>

@@ -3,6 +3,8 @@ title: kubectl create quota
 content_type: tool-reference
 weight: 30
 auto_generated: true
+description: >-
+  Create a quota with the specified name
 ---
 
 
@@ -268,6 +270,13 @@ kubectl create quota NAME [--hard=key1=value1,key2=value2] [--scopes=Scope1,Scop
 </tr>
 <tr>
 <td></td><td style="line-height: 130%; word-wrap: break-word;"><p>Name of the file to write the profile to</p></td>
+</tr>
+
+<tr>
+<td colspan="2">--proxy-url string</td>
+</tr>
+<tr>
+<td></td><td style="line-height: 130%; word-wrap: break-word;"><p>Proxy URL to use for requests to the API server</p></td>
 </tr>
 
 <tr>

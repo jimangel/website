@@ -24,9 +24,15 @@ Dla nieunikalnych atrybutów dostarczonych przez użytkownika, Kubernetes udost�
 
 {{< glossary_definition term_id="name" length="all" >}}
 
-**Nazwy muszą być unikalne we wszystkich [wersjach API](/docs/concepts/overview/kubernetes-api/#api-groups-and-versioning)
-dla tego samego zasobu. Zasoby API są rozróżniane na podstawie grupy API, typu zasobu,
-przestrzeni nazw (dla zasobów przestrzeniozależnych) oraz nazwy. Innymi słowy, wersja API jest nieistotna w tym kontekście.**
+Nazwy muszą być unikalne we wszystkich [wersjach API](/docs/concepts/overview/kubernetes-api/#api-groups-and-versioning) dla tego samego zasobu. 
+
+Kubernetes jednoznacznie identyfikuje obiekty przy użyciu kombinacji czterech atrybutów:
+* **Grupa API (ang. API group) ** (np. `apps`)
+* **Rodzaj zasobu (ang. resource type)** (np. `deployments`)
+* **Przestrzeń nazw (ang. namespace) ** (dla zasobów z przestrzeniami nazw)
+* **Nazwa (ang. name)**
+
+Choć do tego samego zasobu można dostać się przez różne wersje API (takie jak `v1` lub `v1beta1`), wersje te są tylko odmiennymi reprezentacjami tego samego obiektu źródłowego. Ponieważ wersja API nie wchodzi w skład klucza jednoznacznie identyfikującego obiekt, nie można utworzyć w tej samej przestrzeni nazw dwóch obiektów o identycznej nazwie i typie zasobu, różniących się jedynie wersją API.
 
 {{< note >}}
 W przypadkach, gdy obiekty reprezentują fizyczną jednostkę, jak Node reprezentujący fizycznego hosta, jeśli host jest odtworzony pod tą samą nazwą bez usuwania i ponownego tworzenia Node, Kubernetes traktuje nowy host jako stary, co może prowadzić do niespójności.
@@ -59,8 +65,13 @@ ze standardem etykiet DNS, jak zdefiniowano w
 
 - zawierać maksymalnie 63 znaków
 - zawierać tylko małe litery alfanumeryczne lub '-'
-- zaczynać się od znaku alfanumerycznego
+- zaczynać się od litery alfabetu
 - kończyć się znakiem alfanumerycznym
+
+{{< note >}}
+Gdy bramka funkcji `RelaxedServiceNameValidation` jest włączona,
+nazwy obiektów usługi (ang. Service) mogą rozpoczynać się od cyfry.
+{{< /note >}}
 
 ### Nazwy etykiet zgodne z RFC 1035 {#rfc-1035-label-names}
 
@@ -74,10 +85,10 @@ standardy etykiet DNS zgodnie z definicją w
 - kończyć się znakiem alfanumerycznym
 
 {{< note >}}
-Jedyną różnicą pomiędzy standardami etykiet RFC
-1035 a RFC 1123 jest to, że etykiety RFC 1123 mogą zaczynać
-się od cyfry, podczas gdy etykiety RFC
-1035 mogą zaczynać się jedynie od małej litery alfabetu.
+Chociaż RFC 1123 technicznie pozwala, aby etykiety zaczynały się od cyfr, obecna implementacja
+Kubernetesa wymaga, aby zarówno etykiety (ang. label) zgodne z RFC 1035, jak i RFC 1123 zaczynały
+się od znaku alfabetycznego. Wyjątkiem jest sytuacja, gdy dla obiektów typu Service jest włączona
+brama funkcji `RelaxedServiceNameValidation`, co pozwala na to, aby nazwy usług zaczynały się od cyfr.
 {{< /note >}}
 
 ### Nazwy segmentów ścieżki {#path-segment-names}
